@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html xmlns="https://www.w3.org/1999/xhtml">
+	<head>
+		<title>ZLL_RawToCleaned</title>
+		<base target="_top"></base>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+		<meta name="geo.position" content="14.643482; 120.99911" />
+		<meta name="ICBM" content="14.643482, 120.99911" />
+	</head>
+	<body style="margin:0px;">
+		
+		<script type="text/javascript">
+			API = 'leaflet'; // can be either 'leaflet' or 'google'
+			if (self.API && API.match(/^g/i)) {
+				google_api_key = ''; // Your project's Google Maps API key goes here (https://code.google.com/apis/console)
+				language_code = '';
+				document.writeln('<script src="https://maps.googleapis.com/maps/api/js?v=3&amp;libraries=geometry&amp;language='+(self.language_code?self.language_code:'')+'&amp;key='+(self.google_api_key?self.google_api_key:'')+'" type="text/javascript"><'+'/script>');
+			} else {
+				document.writeln('<link href="https://maps.gpsvisualizer.com/leaflet/leaflet.css" rel="stylesheet" />');
+				document.writeln('<script src="https://maps.gpsvisualizer.com/leaflet/leaflet.js" type="text/javascript"><'+'/script>');
+			}
+			thunderforest_api_key = ''; // To display OpenStreetMap tiles from ThunderForest (https://www.thunderforest.com/docs/apikeys/)
+			tracestrack_api_key = ''; // To display topo tiles from Tracestrack (https://console.tracestrack.com/explorer)
+			os_api_key = ''; // To display topo tiles from the UK Ordnance Survey (https://docs.os.uk/os-apis/core-concepts/getting-started-with-an-api-project)
+		</script>
+
+		
+		<!--
+			If you want to transplant this map into another Web page, by far the best method is to
+			simply include it in a IFRAME tag (see https://www.gpsvisualizer.com/faq.html#google_html).
+			But, if you must paste the code into another page, be sure to include all of these parts:
+			   1. The "div" tags that contain the map and its widgets, below
+			   2. Three sections of JavaScript code:
+			      a. The API code (from googleapis.com or /leaflet), above
+			      b. "gv_options" and the code that calls a .js file on gpsvisualizer.com
+			      c. The "GV_Map" function, which contains all the geographic info for the map
+		-->
+		<div style="margin-left:0px; margin-right:0px; margin-top:0px; margin-bottom:0px;">
+			<div id="gmap_div" style="width:100%; height:100%; margin:0px; margin-right:12px; background-color:#f0f0f0; float:left; overflow:hidden;">
+				<p style="text-align:center; font:10px Arial;">This map was created using <a target="_blank" href="https://www.gpsvisualizer.com/">GPS Visualizer</a>'s do-it-yourself geographic utilities.<br /><br />Please wait while the map data loads...</p>
+			</div>
+				
+			<div id="gv_infobox" class="gv_infobox" style="font:11px Arial; border:solid #666666 1px; background-color:#ffffff; padding:4px; overflow:auto; display:none; max-width:400px;">
+				<!-- Although GPS Visualizer didn't create an legend/info box with your map, you can use this space for something else if you'd like; enable it by setting gv_options.infobox_options.enabled to true -->
+			</div>
+
+
+			<div id="gv_tracklist" class="gv_tracklist" style="font:11px Arial; line-height:11px; background-color:#ffffff; overflow:auto; display:none;"><!-- --></div>
+
+
+			<div id="gv_clear_margins" style="height:0px; clear:both;"><!-- clear the "float" --></div>
+		</div>
+
+		
+		<!-- begin GPS Visualizer setup script (must come after loading of API code) -->
+		<script type="text/javascript">
+			/* Global variables used by the GPS Visualizer functions (20251015032021): */
+			gv_options = {};
+			
+			// basic map parameters:
+			gv_options.center = [14.643482,120.99911];  // [latitude,longitude] - be sure to keep the square brackets
+			gv_options.zoom = 20;  // higher number means closer view; can also be 'auto' for automatic zoom/center based on map elements
+			gv_options.map_type = 'GV_OSM_RELIEF';  // popular map_type choices are 'GV_STREET', 'GV_SATELLITE', 'GV_HYBRID', 'GV_TERRAIN', 'GV_OSM', 'GV_TOPO_US', 'GV_TOPO_WORLD' (https://www.gpsvisualizer.com/misc/leaflet_map_types.html)
+			gv_options.map_opacity = 1.00;  // number from 0 to 1
+			gv_options.full_screen = true;  // true|false: should the map fill the entire page (or frame)?
+			gv_options.width = 700;  // width of the map, in pixels
+			gv_options.height = 533;  // height of the map, in pixels
+			
+			gv_options.map_div = 'gmap_div';  // the name of the HTML "div" tag containing the map itself; usually 'gmap_div'
+			gv_options.doubleclick_zoom = true;  // true|false: zoom in when mouse is double-clicked?
+			gv_options.doubleclick_center = true;  // true|false: re-center the map on the point that was double-clicked?
+			gv_options.scroll_zoom = true; // true|false; or 'reverse' for down=in and up=out
+			gv_options.page_scrolling = true; // true|false; does the map relenquish control of the scroll wheel when embedded in scrollable pages?
+			gv_options.autozoom_adjustment = 0; gv_options.autozoom_default = 11;
+			gv_options.centering_options = { 'open_info_window':true, 'partial_match':true, 'center_key':'center', 'default_zoom':null } // URL-based centering (e.g., ?center=name_of_marker&zoom=14)
+			gv_options.street_view = false; // true|false: allow Google Street View on the map (Google Maps only)
+			gv_options.tilt = false; // true|false: allow Google Maps to show 45-degree tilted aerial imagery?
+			gv_options.disable_google_pois = false;  // true|false: if you disable clickable POIs on Google Maps, you also lose the labels on parks, airports, etc.
+			gv_options.animated_zoom = true; // true|false: only affects Leaflet maps
+			
+			// widgets on the map:
+			gv_options.zoom_control = 'auto'; // 'auto'|'large'|'small'|'none'
+			gv_options.recenter_button = true; // true|false: is there a 'click to recenter' button above the zoom control?
+			gv_options.geolocation_control = false; // true|false; only works on secure servers
+			gv_options.geolocation_options = { center:true, zoom:null, marker:true, info_window:true };
+			gv_options.scale_control = true; // true|false
+			gv_options.map_opacity_control = false;  // true|false
+			gv_options.map_type_control = {};  // widget to change the background map
+			  gv_options.map_type_control.visible = 'auto'; // true|false|'auto': is a map type control placed on the map itself?
+			  gv_options.map_type_control.filter = false;  // true|false: when map loads, are irrelevant maps ignored?
+			  gv_options.map_type_control.excluded = [];  // comma-separated list of quoted map IDs that will never show in the list ('included' also works)
+			gv_options.center_coordinates = true;  // true|false: show a "center coordinates" box and crosshair?
+			gv_options.measurement_tools = true; // true|false: put a measurement ruler on the map?
+			gv_options.measurement_options = { visible:false, distance_color:'', area_color:'' };
+			gv_options.crosshair_hidden = true;  // true|false: hide the crosshair initially?
+			gv_options.crosshair_permanent = false; // if true, overrides crosshair_hidden
+			gv_options.mouse_coordinates = false;  // true|false: show a "mouse coordinates" box?
+			gv_options.utilities_menu = { 'maptype':true, 'opacity':true, 'measure':true, 'geolocate':true, 'profile':false };
+			gv_options.allow_export = false;  // true|false
+			
+			gv_options.infobox_options = {}; // options for a floating info box (id="gv_infobox"), which can contain anything
+			  gv_options.infobox_options.enabled = true;  // true|false: enable or disable the info box altogether
+			  gv_options.infobox_options.position = ['LEFT_TOP',52,4];  // [Google anchor name, relative x, relative y]
+			  gv_options.infobox_options.draggable = true;  // true|false: can it be moved around the screen?
+			  gv_options.infobox_options.collapsible = true;  // true|false: can it be collapsed by double-clicking its top bar?
+			
+			// track-related options:
+			gv_options.track_optimization = 1; // sets Leaflet's smoothFactor parameter
+			gv_options.track_tooltips = false; // true|false: should the name of a track appear on the map when you mouse over the track itself?
+			gv_options.tracklist_options = {}; // options for a floating list of the tracks visible on the map
+			  gv_options.tracklist_options.enabled = true;  // true|false: enable or disable the tracklist altogether
+			  gv_options.tracklist_options.position = ['RIGHT_TOP',4,32];  // [Google anchor name, relative x, relative y]
+			  gv_options.tracklist_options.min_width = 100; // minimum width of the tracklist, in pixels
+			  gv_options.tracklist_options.max_width = 180; // maximum width of the tracklist, in pixels
+			  gv_options.tracklist_options.min_height = 0; // minimum height of the tracklist, in pixels; if the list is longer, scrollbars will appear
+			  gv_options.tracklist_options.max_height = 226; // maximum height of the tracklist, in pixels; if the list is longer, scrollbars will appear
+			  gv_options.tracklist_options.desc = true;  // true|false: should tracks' descriptions be shown in the list
+			  gv_options.tracklist_options.toggle = false;  // true|false: should clicking on a track's name turn it on or off?
+			  gv_options.tracklist_options.checkboxes = true;  // true|false: should there be a separate icon/checkbox for toggling visibility?
+			  gv_options.tracklist_options.zoom_links = true;  // true|false: should each item include a small icon that will zoom to that track?
+			  gv_options.tracklist_options.highlighting = true;  // true|false: should the track be highlighted when you mouse over the name in the list?
+			  gv_options.tracklist_options.tooltips = false;  // true|false: should the name of the track appear on the map when you mouse over the name in the list?
+			  gv_options.tracklist_options.draggable = true;  // true|false: can it be moved around the screen?
+			  gv_options.tracklist_options.collapsible = true;  // true|false: can it be collapsed by double-clicking its top bar?
+			  gv_options.tracklist_options.header = 'Tracks:'; // HTML code; be sure to put backslashes in front of any single quotes, and don't include any line breaks
+			  gv_options.tracklist_options.footer = ''; // HTML code
+			gv_options.profile_options = { visible:false, icon:false, units:'metric', filled:true, waypoints:true, height:120, width:'100%', y_min:null, y_max:null, gap_between_tracks:false }; // see https://www.gpsvisualizer.com/tutorials/profiles_in_maps.html
+
+
+			// marker-related options:
+			gv_options.default_marker = { color:'red',icon:'googlemini',scale:1 }; // icon can be a URL, but be sure to also include size:[w,h] and optionally anchor:[x,y]
+			gv_options.vector_markers = true; // are the icons on the map in embedded SVG format?
+			gv_options.marker_tooltips = true; // do the names of the markers show up when you mouse-over them?
+			gv_options.marker_shadows = true; // true|false: do the standard markers have "shadows" behind them?
+			gv_options.marker_link_target = '_blank'; // the name of the window or frame into which markers' URLs will load
+			gv_options.info_window_width = 0;  // in pixels, the width of the markers' pop-up info "bubbles" (can be overridden by 'window_width' in individual markers)
+			gv_options.thumbnail_width = 0;  // in pixels, the width of the markers' thumbnails (can be overridden by 'thumbnail_width' in individual markers)
+			gv_options.photo_size = [0,0];  // in pixels, the size of the photos in info windows (can be overridden by 'photo_width' or 'photo_size' in individual markers)
+			gv_options.hide_labels = false;  // true|false: hide labels when map first loads?
+			gv_options.labels_behind_markers = false; // true|false: are the labels behind other markers (true) or in front of them (false)?
+			gv_options.label_offset = [0,0];  // [x,y]: shift all markers' labels (positive numbers are right and down)
+			gv_options.label_centered = false;  // true|false: center labels with respect to their markers?  (label_left is also a valid option.)
+			gv_options.driving_directions = false;  // put a small "driving directions" form in each marker's pop-up window? (override with dd:true or dd:false in a marker's options)
+			gv_options.garmin_icon_set = '24x24'; // 'gpsmap' are the small 16x16 icons; change it to '24x24' for larger icons
+				
+
+			
+			// Load GPS Visualizer's mapping functions (this must be loaded AFTER gv_options are set):
+			var script_file = (self.API && API.match(/^g/i)) ? 'google_maps/functions3.js' : 'leaflet/functions.js';
+			document.writeln('<script src="https://maps.gpsvisualizer.com/'+script_file+'" type="text/javascript"><'+'/script>');
+		</script>
+		<style type="text/css">
+			/* Put any custom style definitions here (e.g., .gv_marker_info_window, .gv_marker_info_window_name, .gv_marker_list_item, .gv_tooltip, .gv_label, etc.) */
+			#gmap_div .gv_marker_info_window {
+				font-size:11px !important;
+			}
+			#gmap_div .gv_label {
+				opacity:0.90; filter:alpha(opacity=90);
+				color:white; background:#333333; border:1px solid black; padding:1px;
+				font-family:Verdana !important; font-size:10px;
+				font-weight:normal !important;
+			}
+			.gv_tooltip {
+				font:10px Verdana,sans-serif; color:black; background-color:white; border:1px solid #666666; padding:0px; opacity:1 !important;
+			}
+			.legend_block {
+				display:inline-block; border:solid 1px black; width:9px; height:9px; margin:0px 2px 0px 0px;
+			}
+			
+		</style>
+		
+		<!-- end GPSV setup script and styles; begin map-drawing script (they must be separate) -->
+		<script type="text/javascript">
+			function GV_Map() {
+				GV_Setup_Map();
+				
+				// Track #1
+				t = 1; trk[t] = {info:[],segments:[]};
+				trk[t].info.name = 'ZLL_RawToCleaned'; trk[t].info.desc = ''; trk[t].info.clickable = true;
+				trk[t].info.color = '#e60000'; trk[t].info.width = 3; trk[t].info.opacity = 0.9; trk[t].info.hidden = false; trk[t].info.z_index = null;
+				trk[t].info.outline_color = 'black'; trk[t].info.outline_width = 0; trk[t].info.fill_color = '#e60000'; trk[t].info.fill_opacity = 0;
+				trk[t].segments.push({ points:[ [14.643544,120.999003],[14.643545,120.999003],[14.643545,120.999003] ] });
+				trk[t].segments.push({ points:[ [14.643546,120.999003],[14.643545,120.999003],[14.643545,120.999003] ] });
+				trk[t].segments.push({ points:[ [14.643544,120.999003],[14.643544,120.999002] ] });
+				trk[t].segments.push({ points:[ [14.643544,120.999002],[14.643545,120.999002],[14.643549,120.999005],[14.643549,120.999006],[14.643549,120.999005],[14.643548,120.999006],[14.643547,120.999006],[14.643546,120.999007],[14.643546,120.999006] ] });
+				trk[t].segments.push({ points:[ [14.643545,120.999007],[14.643545,120.999007] ] });
+				trk[t].segments.push({ points:[ [14.643545,120.999008],[14.643546,120.999008],[14.643546,120.999007],[14.643546,120.999007] ] });
+				trk[t].segments.push({ points:[ [14.643546,120.999007],[14.643546,120.999007] ] });
+				trk[t].segments.push({ points:[ [14.643546,120.999007],[14.643546,120.999006],[14.643545,120.999007],[14.643545,120.999008],[14.643544,120.999009],[14.643543,120.99901],[14.643541,120.99901],[14.64354,120.99901],[14.643539,120.99901],[14.643537,120.99901],[14.643536,120.99901],[14.643534,120.99901],[14.643533,120.99901],[14.643532,120.999011],[14.643531,120.999013],[14.64353,120.999015],[14.643529,120.999016],[14.643528,120.999018],[14.643527,120.999019],[14.643526,120.999019],[14.643524,120.99902],[14.643523,120.999021],[14.643521,120.999022],[14.64352,120.999024],[14.643518,120.999026],[14.643516,120.999028],[14.643514,120.999031],[14.643512,120.999033],[14.64351,120.999034],[14.643509,120.999035],[14.643508,120.999037] ] });
+				trk[t].segments.push({ points:[ [14.643507,120.99904],[14.643505,120.999044],[14.643503,120.999046],[14.643503,120.999045],[14.643503,120.999045] ] });
+				trk[t].segments.push({ points:[ [14.643501,120.999048],[14.6435,120.999052],[14.643499,120.999054],[14.643498,120.999056],[14.643498,120.999058] ] });
+				trk[t].segments.push({ points:[ [14.643497,120.999057],[14.643496,120.999059],[14.643495,120.999062],[14.643493,120.999064],[14.643492,120.999065] ] });
+				trk[t].segments.push({ points:[ [14.643491,120.999067],[14.64349,120.99907],[14.643488,120.999072],[14.643486,120.999074],[14.643484,120.999073],[14.643483,120.999073],[14.643481,120.999073],[14.64348,120.999074],[14.643477,120.999075],[14.643475,120.999077],[14.643474,120.999078],[14.643472,120.999079],[14.64347,120.99908],[14.643468,120.999081],[14.643466,120.999082],[14.643465,120.999084],[14.643466,120.999085],[14.643466,120.999088],[14.643466,120.999089],[14.643465,120.99909],[14.643465,120.999091],[14.643465,120.999093],[14.643465,120.999095],[14.643465,120.999098],[14.643464,120.9991],[14.643464,120.999102],[14.643462,120.999107],[14.643462,120.999111],[14.643461,120.999114] ] });
+				trk[t].segments.push({ points:[ [14.643461,120.999116],[14.643461,120.999119],[14.643461,120.999121],[14.64346,120.999123],[14.64346,120.999125] ] });
+				trk[t].segments.push({ points:[ [14.64346,120.999126],[14.64346,120.999129],[14.643459,120.999131],[14.643458,120.999132],[14.643454,120.999136] ] });
+				trk[t].segments.push({ points:[ [14.643453,120.999138],[14.643452,120.999137],[14.643454,120.999135],[14.643454,120.999134],[14.643454,120.999133],[14.643453,120.999134],[14.643453,120.999138],[14.643452,120.999141],[14.643455,120.999139],[14.643459,120.999141],[14.643462,120.999143],[14.643464,120.999143],[14.643465,120.999144],[14.643466,120.999144],[14.643466,120.999145],[14.643466,120.999144],[14.643467,120.999144],[14.643467,120.999145],[14.643467,120.999146],[14.643468,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.643468,120.999146],[14.643468,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.643468,120.999146],[14.643468,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.643468,120.999146],[14.643469,120.999146],[14.64347,120.999146],[14.64347,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.64347,120.999146],[14.64347,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.64347,120.999146],[14.64347,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.64347,120.999146],[14.643471,120.999146],[14.643472,120.999146],[14.643472,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.643472,120.999146],[14.643472,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.643472,120.999146],[14.643472,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.643472,120.999146],[14.643472,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.643472,120.999146],[14.643472,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.643472,120.999146],[14.643473,120.999146],[14.643473,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.643473,120.999146],[14.643473,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.643473,120.999147],[14.643473,120.999147] ] });
+				trk[t].segments.push({ points:[ [14.643473,120.999147],[14.643473,120.999147] ] });
+				trk[t].segments.push({ points:[ [14.643473,120.999147],[14.643473,120.999148],[14.643473,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643473,120.999148],[14.643473,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643473,120.999148],[14.643473,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643473,120.999148],[14.643472,120.999148],[14.643472,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643472,120.999148],[14.643472,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643472,120.999148],[14.643472,120.999149],[14.643472,120.999149] ] });
+				trk[t].segments.push({ points:[ [14.643472,120.999149],[14.643472,120.999149] ] });
+				trk[t].segments.push({ points:[ [14.643472,120.999149],[14.643472,120.999149] ] });
+				trk[t].segments.push({ points:[ [14.643472,120.999149],[14.643472,120.99915],[14.643472,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643471,120.99915],[14.643471,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643471,120.99915],[14.643471,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643471,120.99915],[14.643471,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643471,120.99915],[14.643471,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643471,120.99915],[14.643472,120.999149],[14.643472,120.99915],[14.643471,120.99915],[14.643472,120.99915],[14.643473,120.99915],[14.643473,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643474,120.99915],[14.643474,120.999149] ] });
+				trk[t].segments.push({ points:[ [14.643474,120.999149],[14.643474,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643474,120.99915],[14.643474,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643475,120.99915],[14.643475,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643475,120.99915],[14.643476,120.99915],[14.643476,120.999149],[14.643475,120.999149],[14.643474,120.999149],[14.643472,120.999149],[14.643469,120.99915],[14.643466,120.99915],[14.643462,120.999151],[14.643459,120.999151],[14.643455,120.999152],[14.643451,120.999153],[14.643449,120.999153],[14.643447,120.999154],[14.643445,120.999154],[14.643444,120.999154],[14.643442,120.999153],[14.643442,120.999153] ] });
+				trk[t].segments.push({ points:[ [14.643442,120.999153],[14.643442,120.999152],[14.643443,120.999152],[14.643445,120.999151] ] });
+				trk[t].segments.push({ points:[ [14.643448,120.99915],[14.643451,120.999149],[14.643455,120.999147],[14.643459,120.999145],[14.643463,120.999143],[14.643467,120.999141],[14.643471,120.999139],[14.643475,120.999137],[14.643478,120.999135],[14.643482,120.999133],[14.643485,120.999132],[14.643488,120.99913],[14.643491,120.999128],[14.643494,120.999126],[14.643496,120.999125],[14.643499,120.999123],[14.643502,120.999122],[14.643505,120.99912],[14.64351,120.999117],[14.643513,120.999116],[14.643516,120.999114],[14.643518,120.999113],[14.643522,120.999111],[14.643524,120.999109],[14.643525,120.999108],[14.643526,120.999107],[14.643526,120.999106],[14.643526,120.999105],[14.643525,120.999105],[14.643523,120.999105],[14.643521,120.999105],[14.643518,120.999106],[14.643514,120.999106] ] });
+				trk[t].segments.push({ points:[ [14.643511,120.999107],[14.643508,120.999108],[14.643503,120.999109],[14.643501,120.99911],[14.643498,120.99911] ] });
+				trk[t].segments.push({ points:[ [14.643496,120.999111],[14.643494,120.999112],[14.643491,120.999112],[14.643489,120.999113],[14.643486,120.999114],[14.643485,120.999114],[14.643484,120.999115],[14.643483,120.999115],[14.643483,120.999116],[14.643484,120.999116],[14.643485,120.999116],[14.643485,120.999115],[14.643484,120.999115],[14.643484,120.999115] ] });
+				trk[t].segments.push({ points:[ [14.643484,120.999115] ] });
+				trk[t].segments.push({ points:[ [14.643484,120.999115],[14.643485,120.999115],[14.643485,120.999116],[14.643485,120.999117],[14.643486,120.999119],[14.643486,120.999121],[14.643487,120.999123],[14.643488,120.999126],[14.643489,120.999128],[14.64349,120.99913],[14.643491,120.999131],[14.643491,120.999133] ] });
+				trk[t].segments.push({ points:[ [14.643492,120.999135],[14.643493,120.999136],[14.643494,120.999138],[14.643494,120.999139],[14.643495,120.999141] ] });
+				trk[t].segments.push({ points:[ [14.643496,120.999144],[14.643497,120.999146],[14.643497,120.999147],[14.643498,120.999148],[14.643498,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643498,120.999148],[14.643499,120.999147],[14.643499,120.999146],[14.643499,120.999145],[14.643498,120.999145],[14.643498,120.999144],[14.643497,120.999143],[14.643497,120.999142],[14.643496,120.999142],[14.643496,120.999141],[14.643497,120.999141],[14.643495,120.999141],[14.643494,120.999141],[14.643493,120.99914],[14.643492,120.99914],[14.643491,120.99914],[14.643491,120.999139],[14.64349,120.999139] ] });
+				trk[t].segments.push({ points:[ [14.64349,120.999139],[14.64349,120.999139] ] });
+				trk[t].segments.push({ points:[ [14.64349,120.999139],[14.64349,120.99914],[14.643489,120.999142],[14.643489,120.999143] ] });
+				trk[t].segments.push({ points:[ [14.643488,120.999146],[14.643488,120.999148],[14.643487,120.99915],[14.643486,120.999153],[14.643485,120.999155] ] });
+				trk[t].segments.push({ points:[ [14.643484,120.999157],[14.643484,120.999158],[14.643482,120.999162],[14.64348,120.999164],[14.643479,120.999166] ] });
+				trk[t].segments.push({ points:[ [14.643477,120.999168],[14.643475,120.99917],[14.643473,120.999172],[14.643471,120.999174],[14.643468,120.999176],[14.643466,120.999177],[14.643463,120.999178],[14.64346,120.999179],[14.643458,120.99918],[14.643455,120.999181],[14.643452,120.999181],[14.643449,120.999181],[14.643446,120.99918],[14.643443,120.999179],[14.64344,120.999178],[14.643437,120.999176],[14.643434,120.999174],[14.64343,120.999171],[14.643427,120.999169] ] });
+				trk[t].segments.push({ points:[ [14.643425,120.999166],[14.643423,120.999163],[14.643422,120.999159],[14.643421,120.999156],[14.64342,120.999154] ] });
+				trk[t].segments.push({ points:[ [14.64342,120.999151],[14.64342,120.999149],[14.64342,120.999147],[14.643421,120.999145],[14.643422,120.999143] ] });
+				trk[t].segments.push({ points:[ [14.643423,120.99914],[14.643424,120.999138],[14.643426,120.999136],[14.643427,120.999134],[14.643429,120.999133] ] });
+				trk[t].segments.push({ points:[ [14.643432,120.999131],[14.643434,120.99913],[14.643438,120.999128],[14.643441,120.999127],[14.643443,120.999127],[14.643446,120.999127],[14.643449,120.999127],[14.643452,120.999128],[14.643455,120.999128],[14.643458,120.999129],[14.64346,120.99913],[14.643463,120.999132],[14.643465,120.999134],[14.643467,120.999136],[14.643469,120.999138],[14.64347,120.999141],[14.643472,120.999143],[14.643473,120.999146],[14.643474,120.999149],[14.643475,120.999153],[14.643476,120.999156],[14.643477,120.999158],[14.643478,120.999161],[14.643479,120.999163],[14.643481,120.999166],[14.643482,120.999168],[14.643483,120.999171],[14.643484,120.999173],[14.643485,120.999176],[14.643487,120.999178],[14.643488,120.999179],[14.64349,120.999181],[14.643492,120.999182],[14.643494,120.999184] ] });
+				trk[t].segments.push({ points:[ [14.643496,120.999184],[14.643498,120.999185],[14.6435,120.999186],[14.643503,120.999186],[14.643505,120.999186] ] });
+				trk[t].segments.push({ points:[ [14.643507,120.999186],[14.64351,120.999186],[14.643512,120.999185],[14.643514,120.999184],[14.643516,120.999184] ] });
+				trk[t].segments.push({ points:[ [14.643519,120.999182],[14.643521,120.999181],[14.643523,120.999179],[14.643526,120.999175],[14.643527,120.999173],[14.643529,120.99917],[14.64353,120.999167],[14.643531,120.999163],[14.643532,120.99916],[14.643532,120.999156],[14.643533,120.999152],[14.643533,120.999148],[14.643533,120.999145],[14.643532,120.999141],[14.643532,120.999138],[14.643531,120.999134],[14.64353,120.999132],[14.643529,120.999129],[14.643528,120.999127],[14.643527,120.999125],[14.643525,120.999124],[14.643523,120.999123],[14.643521,120.999122],[14.643519,120.999121],[14.643517,120.99912],[14.643514,120.99912],[14.643512,120.99912],[14.643509,120.99912],[14.643504,120.999121],[14.643503,120.999121],[14.643498,120.999123],[14.643494,120.999125] ] });
+				trk[t].segments.push({ points:[ [14.643494,120.999125],[14.643491,120.999127],[14.643489,120.999129] ] });
+				trk[t].segments.push({ points:[ [14.643486,120.999132],[14.643484,120.999134],[14.643482,120.999137],[14.643481,120.99914],[14.643479,120.999143] ] });
+				trk[t].segments.push({ points:[ [14.643478,120.999145],[14.643477,120.999149],[14.643476,120.999151],[14.643475,120.999154],[14.643474,120.999157] ] });
+				trk[t].segments.push({ points:[ [14.643473,120.99916],[14.643472,120.999163],[14.643472,120.999166],[14.64347,120.999169],[14.643469,120.999172],[14.643468,120.999175],[14.643467,120.999178],[14.643465,120.99918],[14.643464,120.999181],[14.643463,120.999183],[14.643463,120.999184],[14.643462,120.999185],[14.64346,120.999186],[14.643458,120.999187],[14.643457,120.999188],[14.643454,120.999189],[14.643452,120.99919],[14.64345,120.999191],[14.643447,120.999191],[14.643445,120.999192],[14.643443,120.999193],[14.64344,120.999193],[14.643438,120.999193],[14.643436,120.999193],[14.643433,120.999193],[14.64343,120.999192],[14.643427,120.999191],[14.643425,120.99919],[14.643423,120.999189],[14.643422,120.999189],[14.643418,120.999187],[14.643416,120.999185],[14.643414,120.999184],[14.643413,120.999182],[14.643411,120.999179],[14.64341,120.999177],[14.643409,120.999175],[14.643408,120.999173],[14.643407,120.99917] ] });
+				trk[t].segments.push({ points:[ [14.643406,120.999167],[14.643406,120.999165],[14.643406,120.999161],[14.643406,120.999158],[14.643406,120.999155] ] });
+				trk[t].segments.push({ points:[ [14.643407,120.999151],[14.643408,120.999148],[14.64341,120.999144],[14.643411,120.999141],[14.643413,120.999138] ] });
+				trk[t].segments.push({ points:[ [14.643415,120.999135],[14.643419,120.999131],[14.643422,120.999128],[14.643425,120.999126],[14.643428,120.999124],[14.643432,120.999123],[14.643435,120.999122],[14.643439,120.999121],[14.643442,120.999121],[14.643446,120.999122],[14.643449,120.999122],[14.643453,120.999123],[14.643456,120.999124],[14.643459,120.999126],[14.643462,120.999128],[14.643464,120.99913],[14.643467,120.999133],[14.643469,120.999136],[14.64347,120.999139],[14.643472,120.999142],[14.643473,120.999145],[14.643474,120.999149],[14.643475,120.999152],[14.643475,120.999156],[14.643475,120.99916],[14.643475,120.999163],[14.643475,120.999166],[14.643476,120.999171],[14.643476,120.999174],[14.643476,120.999178],[14.643477,120.999181],[14.643478,120.999184],[14.643478,120.999186],[14.643479,120.999189],[14.643481,120.999192],[14.643482,120.999194],[14.643484,120.999196],[14.643485,120.999199],[14.643487,120.999201] ] });
+				trk[t].segments.push({ points:[ [14.643488,120.999203],[14.64349,120.999205],[14.643492,120.999206],[14.643493,120.999208],[14.643496,120.99921] ] });
+				trk[t].segments.push({ points:[ [14.643498,120.999211],[14.6435,120.999212],[14.643503,120.999213],[14.643506,120.999214],[14.643508,120.999214] ] });
+				trk[t].segments.push({ points:[ [14.64351,120.999215],[14.643513,120.999216],[14.643518,120.999216],[14.64352,120.999217],[14.643524,120.999217],[14.643528,120.999217],[14.643531,120.999216],[14.643534,120.999215],[14.643538,120.999214],[14.643541,120.999212],[14.643544,120.999211],[14.643547,120.999208],[14.643549,120.999205],[14.643551,120.999202],[14.643554,120.999199],[14.643555,120.999195],[14.643557,120.999192],[14.643558,120.999188],[14.643558,120.999185],[14.643558,120.999181],[14.643558,120.999178],[14.643558,120.999175],[14.643557,120.999172],[14.643555,120.999167],[14.643555,120.999165],[14.643552,120.999161],[14.64355,120.999159],[14.643548,120.999157],[14.643545,120.999155] ] });
+				trk[t].segments.push({ points:[ [14.643543,120.999153],[14.64354,120.999151],[14.643537,120.99915],[14.643533,120.999149],[14.64353,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643526,120.999148],[14.643522,120.999148],[14.643519,120.999148],[14.643515,120.999149],[14.643511,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643508,120.999151],[14.643504,120.999153],[14.643501,120.999155],[14.643498,120.999157],[14.643495,120.999159],[14.643493,120.999162],[14.643491,120.999166],[14.643488,120.999171],[14.643488,120.999173],[14.643487,120.999176],[14.643486,120.99918],[14.643485,120.999186],[14.643484,120.999189],[14.643483,120.999193],[14.643482,120.999197],[14.643481,120.9992],[14.64348,120.999203],[14.643478,120.999207],[14.643476,120.999209],[14.643476,120.999211],[14.643473,120.999213],[14.643471,120.999214],[14.643469,120.999216],[14.643467,120.999217],[14.643465,120.999217],[14.643463,120.999218],[14.643461,120.999218],[14.643458,120.999218],[14.643456,120.999217] ] });
+				trk[t].segments.push({ points:[ [14.643453,120.999217],[14.64345,120.999216],[14.643447,120.999215],[14.643444,120.999214],[14.64344,120.999213] ] });
+				trk[t].segments.push({ points:[ [14.643437,120.999211],[14.643434,120.999209],[14.643431,120.999206],[14.643429,120.999203],[14.643426,120.999201] ] });
+				trk[t].segments.push({ points:[ [14.643425,120.999197],[14.643423,120.999194],[14.643421,120.999189],[14.643421,120.999188],[14.64342,120.999184] ] });
+				trk[t].segments.push({ points:[ [14.64342,120.999178],[14.64342,120.999175],[14.643421,120.999171],[14.643422,120.999167],[14.643424,120.999164],[14.643425,120.999161],[14.643427,120.999157],[14.64343,120.999154],[14.643432,120.999152],[14.643435,120.999149],[14.643439,120.999147],[14.643442,120.999144],[14.643445,120.999143],[14.643449,120.999141],[14.643453,120.99914],[14.643459,120.999139],[14.643463,120.999138],[14.643467,120.999138],[14.643471,120.999139],[14.643475,120.999139],[14.643479,120.999141],[14.643482,120.999142],[14.643486,120.999144],[14.643489,120.999146] ] });
+				trk[t].segments.push({ points:[ [14.643491,120.999149],[14.643494,120.999152],[14.643496,120.999155],[14.643498,120.999158],[14.6435,120.999162] ] });
+				trk[t].segments.push({ points:[ [14.643501,120.999165],[14.643502,120.999169],[14.643503,120.999174],[14.643503,120.999176],[14.643503,120.999182] ] });
+				trk[t].segments.push({ points:[ [14.643502,120.999185],[14.643501,120.999188],[14.643499,120.999192],[14.643498,120.999195],[14.643496,120.999198],[14.643494,120.9992],[14.643492,120.999203],[14.64349,120.999205],[14.643487,120.999207],[14.643484,120.999209],[14.643481,120.99921],[14.643478,120.999211],[14.643474,120.999211],[14.643471,120.999212],[14.643468,120.999212],[14.643465,120.999211],[14.643462,120.99921],[14.643457,120.999208],[14.643455,120.999207],[14.643453,120.999205],[14.643449,120.999202],[14.643447,120.9992],[14.643445,120.999197],[14.643443,120.999194],[14.643441,120.999191],[14.64344,120.999188],[14.643439,120.999185],[14.643438,120.999181],[14.643437,120.999178] ] });
+				trk[t].segments.push({ points:[ [14.643437,120.999175],[14.643437,120.999171],[14.643438,120.999168],[14.643438,120.999164],[14.643439,120.99916] ] });
+				trk[t].segments.push({ points:[ [14.643441,120.999157],[14.643442,120.999153],[14.643444,120.99915],[14.643446,120.999147],[14.643448,120.999143] ] });
+				trk[t].segments.push({ points:[ [14.643451,120.99914],[14.643453,120.999138],[14.643456,120.999135],[14.64346,120.999133],[14.643463,120.99913],[14.643466,120.999128],[14.64347,120.999127],[14.643474,120.999125],[14.64348,120.999124],[14.643484,120.999124],[14.643488,120.999123],[14.643492,120.999124],[14.643496,120.999124],[14.6435,120.999125],[14.643504,120.999126],[14.643507,120.999128],[14.643511,120.99913],[14.643514,120.999132],[14.643517,120.999134],[14.64352,120.999137],[14.643522,120.99914],[14.643525,120.999143],[14.643527,120.999146],[14.643529,120.999149],[14.64353,120.999152],[14.643532,120.999156],[14.643533,120.999159],[14.643534,120.999163],[14.643534,120.999167],[14.643535,120.99917],[14.643535,120.999175],[14.643535,120.999179],[14.643535,120.999182],[14.643534,120.999185] ] });
+				trk[t].segments.push({ points:[ [14.643533,120.999188],[14.643532,120.999191],[14.64353,120.999193],[14.643529,120.999196],[14.643527,120.999198] ] });
+				trk[t].segments.push({ points:[ [14.643523,120.999201],[14.643522,120.999202],[14.64352,120.999204],[14.643516,120.999206],[14.643513,120.999207] ] });
+				trk[t].segments.push({ points:[ [14.643511,120.999207],[14.643508,120.999208],[14.643505,120.999208],[14.643503,120.999207],[14.6435,120.999206],[14.643497,120.999204],[14.643495,120.999202],[14.643492,120.9992],[14.64349,120.999197],[14.643488,120.999195],[14.643486,120.999191],[14.643484,120.999188],[14.643483,120.999185],[14.643482,120.999182],[14.643482,120.999178],[14.643482,120.999173],[14.643482,120.999169],[14.643482,120.999166],[14.643483,120.999163],[14.643485,120.99916],[14.643486,120.999157],[14.643488,120.999154],[14.64349,120.999152],[14.643493,120.99915],[14.643495,120.999148],[14.643498,120.999146],[14.643501,120.999145],[14.643504,120.999144],[14.643507,120.999143] ] });
+				trk[t].segments.push({ points:[ [14.64351,120.999143],[14.643513,120.999143],[14.643517,120.999143],[14.64352,120.999144],[14.643523,120.999145] ] });
+				trk[t].segments.push({ points:[ [14.643527,120.999148],[14.64353,120.99915],[14.643532,120.999152],[14.643534,120.999154],[14.643535,120.999156] ] });
+				trk[t].segments.push({ points:[ [14.643536,120.999158],[14.643537,120.999161],[14.643538,120.999163],[14.643538,120.999166],[14.643539,120.999168] ] });
+				trk[t].segments.push({ points:[ [14.643539,120.999171],[14.643539,120.999173],[14.643539,120.999176],[14.643538,120.999178],[14.643538,120.99918],[14.643537,120.999182],[14.643536,120.999184],[14.643535,120.999186],[14.643533,120.999187],[14.643532,120.999189],[14.64353,120.99919],[14.643529,120.999191],[14.643527,120.999191],[14.643525,120.999192],[14.643524,120.999192],[14.643522,120.999192],[14.64352,120.999192],[14.643518,120.999192],[14.643516,120.999191] ] });
+				trk[t].segments.push({ points:[ [14.643515,120.99919],[14.643513,120.99919],[14.643511,120.999189],[14.64351,120.999188],[14.643508,120.999186] ] });
+				trk[t].segments.push({ points:[ [14.643507,120.999185],[14.643506,120.999183],[14.643505,120.999181],[14.643505,120.999179],[14.643504,120.999176] ] });
+				trk[t].segments.push({ points:[ [14.643504,120.999174],[14.643504,120.999172],[14.643504,120.999169],[14.643504,120.999167],[14.643504,120.999166] ] });
+				trk[t].segments.push({ points:[ [14.643505,120.999165],[14.643506,120.999164],[14.643507,120.999163],[14.643508,120.999163],[14.643509,120.999163],[14.64351,120.999163],[14.643512,120.999163],[14.643513,120.999163],[14.643514,120.999163],[14.643515,120.999163],[14.643516,120.999163],[14.643517,120.999163],[14.643517,120.999164],[14.643517,120.999165],[14.643516,120.999165],[14.643515,120.999166],[14.643514,120.999167],[14.643513,120.999168],[14.643512,120.999169],[14.643512,120.999169] ] });
+				trk[t].segments.push({ points:[ [14.643512,120.999168],[14.643511,120.999168],[14.643511,120.999168] ] });
+				trk[t].segments.push({ points:[ [14.643511,120.999168],[14.643512,120.999168],[14.643511,120.999168],[14.64351,120.999168],[14.643508,120.999168],[14.643506,120.999168],[14.643503,120.999167],[14.643499,120.999167],[14.643494,120.999167],[14.643491,120.999167],[14.643487,120.999167],[14.643484,120.999167],[14.643481,120.999167],[14.643477,120.999167],[14.643475,120.999167],[14.643473,120.999167],[14.643471,120.999167],[14.643469,120.999167],[14.643467,120.999166],[14.643466,120.999166],[14.643464,120.999166],[14.643462,120.999165],[14.64346,120.999165] ] });
+				trk[t].segments.push({ points:[ [14.643458,120.999165],[14.643455,120.999164],[14.643453,120.999164],[14.643451,120.999163],[14.643449,120.999163] ] });
+				trk[t].segments.push({ points:[ [14.643447,120.999163],[14.643445,120.999162],[14.643443,120.999162],[14.643441,120.999162],[14.643439,120.999161] ] });
+				trk[t].segments.push({ points:[ [14.643437,120.999161],[14.643437,120.99916],[14.643437,120.999159],[14.643438,120.999159],[14.643439,120.999158],[14.64344,120.999158],[14.643441,120.999158],[14.643441,120.99916],[14.643442,120.999161],[14.643443,120.999163],[14.643444,120.999165],[14.643446,120.999166],[14.643447,120.999168],[14.643448,120.999169],[14.643449,120.999171],[14.64345,120.999172],[14.643451,120.999173],[14.643452,120.999173],[14.643453,120.999174],[14.643453,120.999173],[14.643454,120.999173],[14.643455,120.999173],[14.643455,120.999172],[14.643455,120.999173],[14.643455,120.999174] ] });
+				trk[t].segments.push({ points:[ [14.643455,120.999174],[14.643456,120.999174],[14.643458,120.999174],[14.64346,120.999174],[14.643463,120.999174] ] });
+				trk[t].segments.push({ points:[ [14.643466,120.999174],[14.643469,120.999174],[14.643473,120.999174],[14.643476,120.999173],[14.643479,120.999173] ] });
+				trk[t].segments.push({ points:[ [14.643482,120.999173],[14.643486,120.999173],[14.643489,120.999173],[14.643492,120.999173],[14.643496,120.999173] ] });
+				trk[t].segments.push({ points:[ [14.643499,120.999173],[14.643503,120.999173],[14.643507,120.999173],[14.643509,120.999173],[14.643512,120.999173],[14.643513,120.999173],[14.643514,120.999173],[14.643515,120.999174],[14.643514,120.999174],[14.643513,120.999174],[14.643512,120.999174] ] });
+				trk[t].segments.push({ points:[ [14.643512,120.999174],[14.643512,120.999173],[14.643512,120.999172],[14.643512,120.99917],[14.643513,120.999167] ] });
+				trk[t].segments.push({ points:[ [14.643513,120.999164],[14.643514,120.99916],[14.643515,120.999157],[14.643516,120.999153],[14.643517,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643518,120.999146],[14.643519,120.999143],[14.643519,120.99914],[14.64352,120.999136],[14.643521,120.999133] ] });
+				trk[t].segments.push({ points:[ [14.643522,120.999131],[14.643523,120.999128],[14.643524,120.999126],[14.643525,120.999123],[14.643526,120.999122],[14.643527,120.999122],[14.643528,120.999122],[14.643528,120.999123],[14.643529,120.999124],[14.643528,120.999124],[14.643528,120.999125],[14.643528,120.999126],[14.643527,120.999127] ] });
+				trk[t].segments.push({ points:[ [14.643527,120.999127],[14.643527,120.999128],[14.643527,120.999129],[14.643526,120.999129],[14.643525,120.999129],[14.643524,120.99913],[14.643523,120.99913],[14.643522,120.99913],[14.643519,120.99913],[14.643517,120.99913],[14.643514,120.99913],[14.643512,120.99913],[14.643509,120.999131],[14.643507,120.999131],[14.643505,120.999132],[14.643502,120.999133],[14.643499,120.999134],[14.643497,120.999135] ] });
+				trk[t].segments.push({ points:[ [14.643493,120.999137],[14.64349,120.999138],[14.643486,120.999139],[14.643483,120.999141],[14.643479,120.999142] ] });
+				trk[t].segments.push({ points:[ [14.643474,120.999144],[14.64347,120.999145],[14.643467,120.999146],[14.643463,120.999146],[14.64346,120.999147],[14.643457,120.999147],[14.643453,120.999148],[14.64345,120.999148],[14.643447,120.999149],[14.643443,120.999149],[14.643439,120.99915],[14.643436,120.99915],[14.643434,120.99915],[14.643433,120.99915],[14.643432,120.99915],[14.643433,120.99915],[14.643434,120.999149],[14.643435,120.999149],[14.643436,120.999148],[14.643437,120.999148],[14.643438,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643438,120.999148],[14.643438,120.999149],[14.643437,120.99915],[14.643438,120.999151],[14.643438,120.999152],[14.643439,120.999155] ] });
+				trk[t].segments.push({ points:[ [14.643439,120.999157],[14.64344,120.999161],[14.643441,120.999163],[14.643441,120.999166],[14.643443,120.999169] ] });
+				trk[t].segments.push({ points:[ [14.643443,120.999172],[14.643444,120.999175],[14.643445,120.999178],[14.643446,120.99918],[14.643447,120.999183] ] });
+				trk[t].segments.push({ points:[ [14.643448,120.999186],[14.643449,120.999189],[14.643451,120.999192],[14.643451,120.999193],[14.643453,120.999195] ] });
+				trk[t].segments.push({ points:[ [14.643453,120.999196],[14.643454,120.999196],[14.643454,120.999195],[14.643454,120.999193],[14.643454,120.999191],[14.643454,120.999188],[14.643454,120.999185],[14.643455,120.999183],[14.643456,120.999181],[14.643458,120.999178],[14.643461,120.999176],[14.643463,120.999173],[14.643466,120.999171],[14.643468,120.999169],[14.643471,120.999167],[14.643473,120.999165],[14.643475,120.999164],[14.643476,120.999162],[14.643478,120.999161],[14.64348,120.999159],[14.643481,120.999157],[14.643481,120.999155] ] });
+				trk[t].segments.push({ points:[ [14.643481,120.999152],[14.643481,120.99915],[14.643481,120.999149],[14.643481,120.999148],[14.64348,120.999147] ] });
+				trk[t].segments.push({ points:[ [14.64348,120.999146],[14.64348,120.999145],[14.643479,120.999145],[14.643478,120.999145] ] });
+				trk[t].segments.push({ points:[ [14.643477,120.999147],[14.643476,120.999149],[14.643475,120.999151],[14.643474,120.999154],[14.643472,120.999156],[14.64347,120.999161],[14.643469,120.999163],[14.643468,120.999164],[14.643466,120.999167],[14.643464,120.999169],[14.643462,120.999171],[14.64346,120.999173],[14.643457,120.999175],[14.643455,120.999177],[14.643452,120.999178],[14.643449,120.99918],[14.643446,120.999181],[14.643443,120.999182],[14.64344,120.999183],[14.643436,120.999184],[14.643433,120.999184],[14.64343,120.999184],[14.643427,120.999184],[14.643424,120.999183],[14.643422,120.999183],[14.64342,120.999182],[14.643418,120.99918],[14.643416,120.999179],[14.643414,120.999176],[14.643414,120.999175],[14.643412,120.999172],[14.643411,120.999169],[14.64341,120.999166],[14.643409,120.999163] ] });
+				trk[t].segments.push({ points:[ [14.643409,120.999159],[14.643409,120.999156],[14.643409,120.999152],[14.643409,120.999149],[14.64341,120.999143] ] });
+				trk[t].segments.push({ points:[ [14.643411,120.999141],[14.643413,120.999137],[14.643415,120.999133],[14.643417,120.99913],[14.64342,120.999128] ] });
+				trk[t].segments.push({ points:[ [14.643423,120.999125],[14.643426,120.999123],[14.643429,120.999121],[14.643432,120.999119],[14.643436,120.999118],[14.643439,120.999117],[14.643443,120.999117],[14.643446,120.999117],[14.64345,120.999117],[14.643454,120.999118],[14.643457,120.999119],[14.64346,120.99912],[14.643464,120.999122],[14.643466,120.999124],[14.643469,120.999126],[14.643471,120.999129],[14.643473,120.999132],[14.643474,120.999135],[14.643475,120.999138],[14.643477,120.999141],[14.643477,120.999144],[14.643478,120.999148],[14.643478,120.999151],[14.643479,120.999156],[14.64348,120.999158],[14.643482,120.999162],[14.643483,120.999165],[14.643484,120.999167],[14.643486,120.999169] ] });
+				trk[t].segments.push({ points:[ [14.643487,120.99917],[14.643489,120.999172],[14.643491,120.999173],[14.643494,120.999174],[14.643497,120.999175] ] });
+				trk[t].segments.push({ points:[ [14.6435,120.999176],[14.643503,120.999177],[14.643506,120.999177],[14.643509,120.999177],[14.643512,120.999176] ] });
+				trk[t].segments.push({ points:[ [14.643515,120.999176],[14.643518,120.999174],[14.643521,120.999173],[14.643524,120.999171],[14.643526,120.999168] ] });
+				trk[t].segments.push({ points:[ [14.643528,120.999166],[14.64353,120.999163],[14.643532,120.99916],[14.643533,120.999157],[14.643534,120.999154],[14.643535,120.999151],[14.643536,120.999147],[14.643536,120.999144],[14.643536,120.99914],[14.643535,120.999137],[14.643534,120.999134],[14.643533,120.999131],[14.643532,120.999127],[14.64353,120.999124],[14.643528,120.999122],[14.643526,120.999119],[14.643523,120.999117],[14.64352,120.999116],[14.643517,120.999115],[14.643514,120.999114],[14.643511,120.999114],[14.643506,120.999114],[14.643503,120.999115],[14.6435,120.999116] ] });
+				trk[t].segments.push({ points:[ [14.643497,120.999117],[14.643495,120.999119],[14.643492,120.999121],[14.64349,120.999124],[14.643489,120.999126] ] });
+				trk[t].segments.push({ points:[ [14.643487,120.999129],[14.643486,120.999132],[14.643485,120.999135],[14.643484,120.999138],[14.643484,120.999141] ] });
+				trk[t].segments.push({ points:[ [14.643483,120.999144],[14.643483,120.999147],[14.643483,120.99915],[14.643482,120.999153],[14.643482,120.999156],[14.643481,120.999158],[14.64348,120.99916],[14.643478,120.999163],[14.643477,120.999165],[14.643475,120.999166],[14.643473,120.999167],[14.643471,120.999168],[14.643469,120.999168],[14.643466,120.999169],[14.643463,120.999169],[14.64346,120.999169],[14.643457,120.999169],[14.643454,120.999169],[14.643451,120.999168],[14.643448,120.999167] ] });
+				trk[t].segments.push({ points:[ [14.643448,120.999167],[14.643445,120.999166],[14.643442,120.999164],[14.64344,120.999162],[14.643438,120.99916],[14.643436,120.999157],[14.643435,120.999155],[14.643435,120.999152],[14.643434,120.99915],[14.643434,120.999146],[14.643434,120.999143],[14.643434,120.99914],[14.643434,120.999136],[14.643435,120.999133],[14.643437,120.999129] ] });
+				trk[t].segments.push({ points:[ [14.643439,120.999124],[14.64344,120.999122],[14.643442,120.999119],[14.643445,120.999115],[14.643448,120.999112] ] });
+				trk[t].segments.push({ points:[ [14.64345,120.999111],[14.643453,120.999109],[14.643456,120.999108],[14.643459,120.999107],[14.643463,120.999106] ] });
+				trk[t].segments.push({ points:[ [14.643467,120.999106],[14.643469,120.999106],[14.643472,120.999107],[14.643477,120.999109],[14.64348,120.99911] ] });
+				trk[t].segments.push({ points:[ [14.643483,120.999112],[14.643486,120.999114],[14.643489,120.999116],[14.643492,120.999119],[14.643494,120.999122],[14.643496,120.999126],[14.643498,120.999129],[14.6435,120.999132],[14.643501,120.999136],[14.643502,120.999139],[14.643503,120.999143],[14.643503,120.999146],[14.643504,120.99915],[14.643505,120.999153],[14.643506,120.999156],[14.643507,120.999158],[14.643508,120.999161],[14.64351,120.999163] ] });
+				trk[t].segments.push({ points:[ [14.64351,120.999163],[14.643512,120.999165],[14.643514,120.999166],[14.643516,120.999167],[14.643519,120.999167],[14.643522,120.999167],[14.643523,120.999168],[14.643526,120.999167],[14.643529,120.999167],[14.643531,120.999167],[14.643533,120.999166],[14.643535,120.999165],[14.643537,120.999164],[14.643539,120.999162],[14.643541,120.999161],[14.643542,120.999159],[14.643544,120.999157] ] });
+				trk[t].segments.push({ points:[ [14.643546,120.999155],[14.643547,120.999153],[14.643548,120.99915],[14.64355,120.999148],[14.64355,120.999145] ] });
+				trk[t].segments.push({ points:[ [14.643551,120.999141],[14.643551,120.999138],[14.643551,120.999135],[14.643551,120.999132],[14.643551,120.999129] ] });
+				trk[t].segments.push({ points:[ [14.643551,120.999126],[14.64355,120.999123],[14.643549,120.999121],[14.643548,120.999118],[14.643547,120.999115],[14.643545,120.999113],[14.643543,120.999111],[14.643541,120.999109],[14.643539,120.999108],[14.643536,120.999107],[14.643534,120.999106],[14.643531,120.999105],[14.643528,120.999105],[14.643526,120.999105],[14.643523,120.999105] ] });
+				trk[t].segments.push({ points:[ [14.643523,120.999105],[14.64352,120.999105],[14.643517,120.999106],[14.643515,120.999107],[14.643512,120.999109],[14.643509,120.999111],[14.643507,120.999113],[14.643506,120.999116],[14.643504,120.999118],[14.643503,120.999121],[14.643503,120.999124],[14.643502,120.999126],[14.643502,120.999129],[14.643503,120.999132],[14.643504,120.999134] ] });
+				trk[t].segments.push({ points:[ [14.643505,120.999136],[14.643506,120.999137],[14.643506,120.999138],[14.643507,120.999139],[14.643507,120.999139] ] });
+				trk[t].segments.push({ points:[ [14.643506,120.99914],[14.643504,120.999141],[14.643502,120.999141],[14.6435,120.999142],[14.643496,120.999143] ] });
+				trk[t].segments.push({ points:[ [14.643493,120.999144],[14.643491,120.999145],[14.643488,120.999145],[14.643486,120.999146],[14.643484,120.999147] ] });
+				trk[t].segments.push({ points:[ [14.643483,120.999147],[14.643481,120.999148],[14.64348,120.999148],[14.643477,120.999148],[14.643476,120.999149],[14.643475,120.999149],[14.643475,120.999148],[14.643476,120.999148],[14.643477,120.999147],[14.643478,120.999146],[14.643478,120.999145],[14.643478,120.999144],[14.643479,120.999144],[14.643479,120.999143],[14.643479,120.999143] ] });
+				trk[t].segments.push({ points:[ [14.643479,120.999143],[14.643479,120.999142],[14.643479,120.999141],[14.64348,120.999141],[14.64348,120.999142],[14.64348,120.999143],[14.643479,120.999143],[14.643478,120.999144],[14.643477,120.999144],[14.643476,120.999144],[14.643475,120.999144],[14.643476,120.999144],[14.643476,120.999143],[14.643477,120.999143],[14.643477,120.999143] ] });
+				trk[t].segments.push({ points:[ [14.643477,120.999143],[14.643477,120.999143] ] });
+				trk[t].segments.push({ points:[ [14.643477,120.999142],[14.643477,120.999142] ] });
+				trk[t].segments.push({ points:[ [14.643477,120.999142],[14.643477,120.999143],[14.643477,120.999144],[14.643477,120.999145],[14.643477,120.999146],[14.643476,120.999146],[14.643477,120.999146],[14.643477,120.999145],[14.643476,120.999146],[14.643476,120.999147],[14.643476,120.999148],[14.643477,120.999149] ] });
+				trk[t].segments.push({ points:[ [14.643476,120.999149],[14.643476,120.999149] ] });
+				trk[t].segments.push({ points:[ [14.643475,120.999149],[14.643476,120.999149] ] });
+				trk[t].segments.push({ points:[ [14.643476,120.999149],[14.643476,120.999149] ] });
+				trk[t].segments.push({ points:[ [14.643476,120.999149],[14.643476,120.999148],[14.643476,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643476,120.999148],[14.643476,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643476,120.999148],[14.643476,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643476,120.999148],[14.643477,120.999148],[14.643476,120.999148],[14.643476,120.999148] ] });
+				trk[t].segments.push({ points:[ [14.643477,120.999148],[14.643477,120.999147],[14.643477,120.999146],[14.643478,120.999147],[14.643478,120.999146],[14.643477,120.999146],[14.643476,120.999147] ] });
+				trk[t].segments.push({ points:[ [14.643475,120.999148],[14.643475,120.999149],[14.643474,120.99915] ] });
+				trk[t].segments.push({ points:[ [14.643474,120.999151],[14.643473,120.999152],[14.643473,120.999151] ] });
+				trk[t].segments.push({ points:[ [14.643474,120.999149],[14.643474,120.999148],[14.643475,120.999147],[14.643475,120.999145],[14.643474,120.999143],[14.643474,120.99914],[14.643474,120.999139],[14.643474,120.999136],[14.643474,120.999134],[14.643475,120.999132],[14.643475,120.99913],[14.643476,120.999129],[14.643477,120.999128],[14.643477,120.999125],[14.643478,120.999123],[14.643479,120.999122],[14.643481,120.99912],[14.643482,120.999119],[14.643482,120.999116],[14.643482,120.999115],[14.643483,120.999113],[14.643483,120.999111],[14.643483,120.99911],[14.643484,120.999108],[14.643484,120.999106],[14.643484,120.999105],[14.643484,120.999104],[14.643484,120.999102],[14.643485,120.9991],[14.643484,120.999098],[14.643484,120.999097],[14.643484,120.999095] ] });
+				trk[t].segments.push({ points:[ [14.643484,120.999094],[14.643484,120.999093],[14.643484,120.999091],[14.643484,120.999089],[14.643483,120.999088] ] });
+				trk[t].segments.push({ points:[ [14.643483,120.999086],[14.643483,120.999083],[14.643483,120.999079],[14.643483,120.999078] ] });
+				trk[t].segments.push({ points:[ [14.643483,120.999076],[14.643483,120.999074],[14.643483,120.999072],[14.643483,120.99907],[14.643482,120.999068],[14.643482,120.999067],[14.643482,120.999065],[14.643482,120.999063],[14.643483,120.999062],[14.643484,120.99906],[14.643484,120.999058],[14.643484,120.999056],[14.643485,120.999055],[14.643485,120.999053],[14.643486,120.999051],[14.643487,120.99905],[14.643488,120.999048],[14.643488,120.999047],[14.64349,120.999045],[14.643491,120.999043],[14.643492,120.999041],[14.643493,120.999041],[14.643494,120.999038],[14.643495,120.999036],[14.643496,120.999033],[14.643498,120.999031],[14.6435,120.99903],[14.643501,120.999028],[14.643501,120.999026] ] });
+				trk[t].segments.push({ points:[ [14.643501,120.999025],[14.643502,120.999024],[14.643503,120.999023],[14.643503,120.999023] ] });
+				GV_Draw_Track(t);
+				
+				t = 1; GV_Add_Track_to_Tracklist({bullet:'- ',name:trk[t].info.name,desc:trk[t].info.desc,color:trk[t].info.color,number:t});
+				
+				
+				
+				GV_Finish_Map();
+					
+			}
+			GV_Map(); // execute the above code
+			// https://www.gpsvisualizer.com/map_input?form=leaflet
+		</script>
+		
+		
+		
+	</body>
+	
+</html>
